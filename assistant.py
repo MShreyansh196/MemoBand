@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
+from tkinterweb import HtmlFrame 
+import webbrowser
 from tkinter import *
 import pygame
 import pyttsx3
@@ -12,8 +14,6 @@ import os
 import random
 import speech_recognition as sr
 from tkinter import filedialog
-from tkinterweb import HtmlFrame
-import webbrowser
 import requests
 
 pygame.mixer.init()
@@ -222,7 +222,7 @@ class AIWatchAssistant:
         tk.Button(self.root, text="Location", font=("Arial", 18), width=20, command=self.location_menu).pack(pady=10)
         tk.Button(self.root, text="Stress Relief", font=("Arial", 18), width=20, command=self.stress_relief_menu).pack(pady=10)
         tk.Button(self.root, text="Logout", font=("Arial", 14), command=self.logout).pack(pady=30)
-        tk.Button(self.root, text="Speak It!", font=("Arial", 16), bg="limegreen", fg="white", command=lambda: threading.Thread(target=self.homescreen_keywords).start()).pack(pady=20)
+        tk.Button(self.root, text="😄 Speak It!", font=("Arial", 16), bg="limegreen", fg="white", command=lambda: threading.Thread(target=self.homescreen_keywords).start()).pack(pady=20)
     
     # ---------- Reminders Section ----------
     def reminders_menu(self):
@@ -233,14 +233,7 @@ class AIWatchAssistant:
         tk.Button(self.root, text="Create Reminder", font=("Arial", 16), width=20, command=self.add_reminder).pack(pady=10)
         tk.Button(self.root, 
         text="Back", font=("Arial", 14), command=self.home_screen).pack(pady=30)
-        tk.Button(
-        self.root,
-        text="Speak It!",
-        font=("Arial", 16),
-        bg="limegreen",
-        fg="white",
-        command=lambda: threading.Thread(target=self.reminder_keywords).start()
-        ).pack(pady=20)
+        tk.Button(self.root,text="😄 Speak It!",font=("Arial", 16),bg="limegreen",fg="white",command=lambda: threading.Thread(target=self.reminder_keywords).start()).pack(pady=20)
     # ---------- Games Section ----------
     def games_menu(self):
         self.clear_screen()
@@ -250,14 +243,21 @@ class AIWatchAssistant:
         tk.Button(self.root, text="Music Maker", font=("Arial", 16), width=20, command=self.music_maker_game).pack(pady=10)
         tk.Button(self.root, text="Object Finder", font=("Arial", 16), width=20, command=self.object_finder_game).pack(pady=10)
         tk.Button(self.root, text="Back", font=("Arial", 14), command=self.home_screen).pack(pady=30)
+    
+   
 
     # ---------- Location Section ----------
     def location_menu(self):
         self.clear_screen()
         tk.Label(self.root, text="Location", font=("Arial", 24, "bold"), bg="aliceblue", fg="seagreen").pack(pady=30)
-        # Placeholder for map and SOS button
-        tk.Label(self.root, text="(Map and SOS button coming soon)", font=("Arial", 16), bg="aliceblue").pack(pady=20)
-        tk.Button(self.root, text="Back", font=("Arial", 14), command=self.home_screen).pack(pady=30)
+        frame = HtmlFrame(root, horizontal_scrollbar="auto")
+        frame.pack(fill="both", expand=True)
+
+        # Load map.html file
+        frame.load_file("file:///home/pi/Alzheimers/map.html")  # path to your HTML file
+
+        root.mainloop()
+        Button(self.root, text="Back", font=("Arial", 14), command=self.home_screen).pack(pady=30)
 
     # ---------- Stress Relief Section ----------
     def stress_relief_menu(self):
