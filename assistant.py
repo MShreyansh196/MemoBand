@@ -254,7 +254,7 @@ class AIWatchAssistant:
         frame.pack(fill="both", expand=True)
 
         # Load map.html file
-        frame.load_file("file:///home/pi/Alzheimers/map.html")  # path to your HTML file
+        frame.load_file("file:///home/pi/Alzheimers_Project/map.html")  # path to your HTML file
 
         root.mainloop()
         Button(self.root, text="Back", font=("Arial", 14), command=self.home_screen).pack(pady=30)
