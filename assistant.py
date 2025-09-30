@@ -24,10 +24,10 @@ REMINDER_FILE = "reminders.json"
 USER_FILE = "users.json"
 CARD_SCORES_FILE = "card_matcher_scores.json"
 
-class AIWatchAssistant:
+class WatchAssistant:
     def __init__(self, root):
         self.root = root
-        self.root.title("Memory Mate")
+        self.root.title("MemoBand")
         self.root.geometry("480x320")
         self.root.configure(bg="aliceblue")
         self.tts_engine = pyttsx3.init()
@@ -665,5 +665,5 @@ class AIWatchAssistant:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = AIWatchAssistant(root)
+    app = WatchAssistant(root)
     root.mainloop()
