@@ -1,9 +1,13 @@
 import tkinter as tk
 from tkinter import messagebox
+import tkinterweb
 from tkinterweb import HtmlFrame 
 import webbrowser
 from tkinter import *
 import pygame
+import tkinter as tk
+##from tkhtmlview import HTMLLabel
+import requests
 import pyttsx3
 import threading
 import time
@@ -14,10 +18,8 @@ import os
 import random
 import speech_recognition as sr
 from tkinter import filedialog
-import requests
 
 pygame.mixer.init()
-
 REMINDER_FILE = "reminders.json"
 USER_FILE = "users.json"
 CARD_SCORES_FILE = "card_matcher_scores.json"
@@ -248,16 +250,14 @@ class AIWatchAssistant:
 
     # ---------- Location Section ----------
     def location_menu(self):
+        def callback(url):
+                webbrowser.get("chromium-browser").open_new_tab(url)
+
         self.clear_screen()
         tk.Label(self.root, text="Location", font=("Arial", 24, "bold"), bg="aliceblue", fg="seagreen").pack(pady=30)
-        frame = HtmlFrame(root, horizontal_scrollbar="auto")
-        frame.pack(fill="both", expand=True)
-
-        # Load map.html file
-        frame.load_file("file:///home/pi/Alzheimers_Project/map.html")  # path to your HTML file
-
-        root.mainloop()
+        tk.Label(self.root, text="Your current location is being opened in Chromium.", font=("Arial", 14), bg="aliceblue").pack(pady=10)
         Button(self.root, text="Back", font=("Arial", 14), command=self.home_screen).pack(pady=30)
+        callback("file:///home/pi/Alzheimers_Project/map.html")
 
     # ---------- Stress Relief Section ----------
     def stress_relief_menu(self):
