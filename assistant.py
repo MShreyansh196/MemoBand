@@ -1,12 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox
-import tkinterweb
-from tkinterweb import HtmlFrame 
 import webbrowser
 from tkinter import *
 import pygame
 import tkinter as tk
-##from tkhtmlview import HTMLLabel
 import requests
 import pyttsx3
 import threading
