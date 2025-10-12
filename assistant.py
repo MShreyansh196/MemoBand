@@ -15,6 +15,9 @@ import os
 import random
 import speech_recognition as sr
 from tkinter import filedialog
+import customtkinter as ctk
+import gps
+
 
 pygame.mixer.init()
 REMINDER_FILE = "reminders.json"
@@ -254,7 +257,20 @@ class WatchAssistant:
         tk.Label(self.root, text="Location", font=("Arial", 24, "bold"), bg="aliceblue", fg="seagreen").pack(pady=30)
         tk.Label(self.root, text="Your current location is being opened in Chromium.", font=("Arial", 14), bg="aliceblue").pack(pady=10)
         Button(self.root, text="Back", font=("Arial", 14), command=self.home_screen).pack(pady=30)
-        callback("file:///home/pi/Alzheimers_Project/map.html")
+        callback("file:///home/pi/Alzheimers_Project/Alzheimers_Project/map.html")
+
+        def get_position():
+            session = gps.gps(mode=gps.WATCH_ENABLE)
+            try:
+                while True:
+                    report = session.next()
+                    if report['class'] == 'TPV':
+                        lat = getattr(report, 'lat', 'Unknown')
+                        lon = getattr(report, 'lon', 'Unknown')
+                        print(f"Lat: {lat}, Lon: {lon}")
+            except KeyboardInterrupt:
+                print("Exiting GPS reading")
+
 
     # ---------- Stress Relief Section ----------
     def stress_relief_menu(self):
