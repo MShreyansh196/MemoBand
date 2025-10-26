@@ -1,2 +1,10 @@
-{"Shreyansh": "Shreyansh", 
-"Test": "Test"}
+[
+    {
+        "Username": "Shreyansh",
+        "Password": "Shreyansh"
+    },
+    {
+        "Username": "Test",
+        "Password": "1234"
+    }
+]
