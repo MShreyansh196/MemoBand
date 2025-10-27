@@ -23,15 +23,16 @@ import time
 from tkinter import simpledialog, messagebox
 import gps
 import emoji
+from tkcalendar import Calendar
+import gpsd
 
-# Initialize pygame mixer and TTS
 pygame.mixer.init()
 REMINDER_FILE = "reminders.json"
 USER_FILE = "users.json"
 CARD_SCORES_FILE = "card_matcher_scores.json"
 
-# Configure customtkinter appearance
-ctk.set_appearance_mode("Light")  # or "Dark" / "Light"
+
+ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("dark-blue")  
 
 
@@ -41,7 +42,7 @@ class WatchAssistant:
         self.root.title("MemoBand")
         self.root.geometry("480x300")
         self.tts_engine = pyttsx3.init()
-        # prefer a slower speaking rate
+       
         try:
             rate = self.tts_engine.getProperty('rate')
             self.tts_engine.setProperty('rate', max(80, rate - 50))
@@ -53,13 +54,12 @@ class WatchAssistant:
         self.clock_label = None
         self.current_user = None
         self.game_status = None
-
-        # Start background reminder checker
+        self.load_users()
+        self.profile_pic_path = None
+      
         threading.Thread(target=self.reminder_checker, daemon=True).start()
 
-        # Show login screen
         self.login_screen()
-        # update clock loop
         self.update_clock()
 
     # ---------- Login & Signup ----------
@@ -131,14 +131,12 @@ class WatchAssistant:
             try:
                 with open(USER_FILE, "r") as f:
                     users_list = json.load(f)
-                    # convert list to dict for quick lookup
                     return {u["Username"]: u["Password"] for u in users_list}
             except Exception:
                 return {}
         return {}
 
     def save_users(self, users_dict):
-        # convert dict back to list of dicts
         users_list = [{"Username": k, "Password": v} for k, v in users_dict.items()]
         try:
             with open(USER_FILE, "w") as f:
@@ -169,7 +167,6 @@ class WatchAssistant:
         now = datetime.datetime.now().strftime("%I:%M:%S %p")
         if self.clock_label:
             self.clock_label.configure(text=now)
-        # schedule next update
         self.root.after(1000, self.update_clock)
 
     def load_reminders(self):
@@ -177,7 +174,6 @@ class WatchAssistant:
             try:
                 with open(REMINDER_FILE, "r") as f:
                     reminders_list = json.load(f)
-                    # convert list of dicts to dict with key for easy lookup
                     reminders_dict = {}
                     for r in reminders_list:
                         key = f"{r['Username']}:{r['Date']}|{r['Time']}"
@@ -189,7 +185,6 @@ class WatchAssistant:
 
     def save_reminders(self):
         try:
-            # convert dict to list of dicts
             reminders_list = []
             for key, msg in self.reminders.items():
                 user, date_time = key.split(":", 1)
@@ -209,15 +204,12 @@ class WatchAssistant:
         while True:
             now = datetime.datetime.now()
             now_str = now.strftime("%Y-%m-%d|%I:%M %p")
-            # Copy keys to avoid mutation while iterating
             for key, task in list(self.reminders.items()):
                 try:
                     user, date_time = key.split(":", 1)
                 except ValueError:
-                    # malformed key - skip
                     continue
                 if user == self.current_user and date_time == now_str:
-                    # show popup on main thread
                     self.root.after(0, self.show_reminder_popup, key, task)
             time.sleep(1)
 
@@ -294,9 +286,9 @@ class WatchAssistant:
                 text = recognizer.recognize_google(audio).lower()
                 if "card" in text:
                     self.card_matcher_game()
-                elif "Hang" in text:
+                elif "hang" in text:
                     self.hangman_game()
-                elif "Object" in text:
+                elif "object" in text:
                     self.object_finder_game()
                 else:
                     print("No matching command found")
@@ -348,10 +340,11 @@ class WatchAssistant:
         ctk.CTkButton(self.root, text="Card Matcher", command=self.card_matcher_game, width=240).pack(pady=8)
         ctk.CTkButton(self.root, text="Object Finder", command=self.object_finder_game, width=240).pack(pady=8)
         ctk.CTkButton(self.root, text="Back", command=self.home_screen, width=200, fg_color="gray").pack(pady=16)
-        ctk.CTkButton(self.root, text="\U0001f442 Speak It!", command=lambda: threading.Thread(target=self.game_keywords).start(), width=200).pack(pady=6)
+        ctk.CTkButton(self.root, text="\U0001f442 Speak It!", command=lambda: threading.Thread(target=self.games_keywords).start(), width=200).pack(pady=6)
 
     # ---------- Location Section ----------
    
+
 
 
     def location_menu(self):
@@ -359,43 +352,58 @@ class WatchAssistant:
         ctk.CTkLabel(self.root, text="Location", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=6)
         ctk.CTkButton(self.root, text="Back", command=self.home_screen, width=200).pack(pady=6)
 
-        # Map frame
         map_frame = ctk.CTkFrame(self.root)
         map_frame.pack(pady=12, padx=12, fill="both", expand=True)
 
-        # TkinterMapView widget
         map_widget = tkintermapview.TkinterMapView(map_frame, corner_radius=10)
         map_widget.pack(fill="both", expand=True)
 
-        # Start with a neutral position
         map_widget.set_position(0, 0)
         map_widget.set_zoom(15)
 
-        # Marker (will update later)
         marker = map_widget.set_marker(0, 0, text="My Location")
 
-        # Function to update marker safely on the main thread
+        gpsd.connect()
+
+        prev_lat = None
+        prev_lon = None
+        steps_per_second = 10
+        sleep_time = 100 
+
+        def update_gps():
+            nonlocal prev_lat, prev_lon
+
+            packet = gpsd.get_current()
+            if packet.mode >= 2: 
+                lat = packet.lat
+                lon = packet.lon
+
+                if prev_lat is None:
+                    prev_lat = lat
+                    prev_lon = lon
+                    marker.set_position(lat, lon)
+                    map_widget.set_position(lat, lon)
+                else:
+                    steps = steps_per_second
+                    delta_lat = (lat - prev_lat) / steps
+                    delta_lon = (lon - prev_lon) / steps
+
+                    for i in range(1, steps + 1):
+                        smooth_lat = prev_lat + delta_lat * i
+                        smooth_lon = prev_lon + delta_lon * i
+                        self.root.after(i * sleep_time, lambda sl=smooth_lat, slon=smooth_lon: update_marker(sl, slon))
+
+                    prev_lat = lat
+                    prev_lon = lon
+
+            self.root.after(1000, update_gps)
+
         def update_marker(lat, lon):
             marker.set_position(lat, lon)
             map_widget.set_position(lat, lon)
 
-        # GPS update loop
-        def update_gps():
-            try:
-                session = gps.gps(mode=gps.WATCH_ENABLE)
-                while True:
-                    report = session.next()
-                    if report['class'] == 'TPV':
-                        if hasattr(report, 'lat') and hasattr(report, 'lon'):
-                            lat, lon = report.lat, report.lon
-                            # Schedule marker update on main thread
-                            self.root.after(0, update_marker, lat, lon)
-                    time.sleep(2)
-            except Exception as e:
-                print("GPS error:", e)
+        update_gps()
 
-        # Start GPS thread
-        threading.Thread(target=update_gps, daemon=True).start()
 
     # ---------- Stress Relief Section ----------
     def stress_relief_menu(self):
@@ -417,7 +425,6 @@ class WatchAssistant:
                 pass
 
         def breathing_cycle():
-            # 4 cycles of in/out
             for _ in range(4):
                 breath_label.configure(text="Breathe In")
                 speak_with_pause("Breathe in")
@@ -446,81 +453,7 @@ class WatchAssistant:
         ctk.CTkButton(self.root, text="Back", command=self.games_menu, width=200, fg_color="gray").pack(pady=12)
 
     def object_finder_game(self):
-        # Load YOLOv4-tiny
-        net = cv2.dnn.readNet("yolov4-tiny.weights", "yolov4-tiny.cfg")
-        with open("coco.names", "r") as f:
-            classes = [line.strip() for line in f.readlines()]
-        layer_names = net.getLayerNames()
-        output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
-
-        # Ask user for object to find and time limit
-        target_object = simpledialog.askstring("Object Finder", "Which object should you find?")
-        if target_object not in classes:
-            messagebox.showinfo("Error", f"Object '{target_object}' not detectable!")
-            return
-
-        time_limit = simpledialog.askinteger("Time Limit", "Set time limit (seconds):", minvalue=5, maxvalue=300)
-        if not time_limit:
-            return
-
-        cap = cv2.VideoCapture(0)
-        start_time = time.time()
-        found_target = False
-
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            height, width, _ = frame.shape
-            blob = cv2.dnn.blobFromImage(frame, 1/255.0, (416, 416), swapRB=True, crop=False)
-            net.setInput(blob)
-            outs = net.forward(output_layers)
-
-            class_ids, confidences, boxes = [], [], []
-            for out in outs:
-                for detection in out:
-                    scores = detection[5:]
-                    class_id = np.argmax(scores)
-                    confidence = scores[class_id]
-                    if confidence > 0.5:
-                        center_x = int(detection[0]*width)
-                        center_y = int(detection[1]*height)
-                        w = int(detection[2]*width)
-                        h = int(detection[3]*height)
-                        x = int(center_x - w/2)
-                        y = int(center_y - h/2)
-                        boxes.append([x, y, w, h])
-                        confidences.append(float(confidence))
-                        class_ids.append(class_id)
-
-            indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
-
-            for i in indexes.flatten():
-                x, y, w, h = boxes[i]
-                label = classes[class_ids[i]]
-                cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-                cv2.putText(frame, f"{label} {int(confidences[i]*100)}%", (x, y-10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,255,0), 2)
-                if label == target_object:
-                    found_target = True
-
-            cv2.imshow("Object Finder", frame)
-
-            if found_target or time.time() - start_time > time_limit:
-                break
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-        cap.release()
-        cv2.destroyAllWindows()
-
-        if found_target:
-            messagebox.showinfo("Result", f"Found {target_object} in time!")
-        else:
-            messagebox.showinfo("Result", f"Did not find {target_object} in time.")
-
+       messagebox.showinfo("Object Finder", "Object Finder coming soon!")
 
     # ---------- Reminders Functionality ----------
     def add_reminder(self):
@@ -562,7 +495,6 @@ class WatchAssistant:
                 year_num = int(year_var.get())
                 last_day = calendar.monthrange(year_num, month_num)[1]
                 days = [str(d) for d in range(1, last_day + 1)]
-                # set new values
                 days_menu.configure(values=days)
                 if int(day_var.get()) > last_day:
                     day_var.set(str(last_day))
@@ -808,7 +740,6 @@ class WatchAssistant:
         else:
             ctk.CTkLabel(score_frame, text="No scores yet!").pack()
 
-        # Determine grid based on number of cards (matching your old layout)
         if num_cards == 10:
             rows, cols = 2, 5
         elif num_cards == 16:
@@ -818,7 +749,6 @@ class WatchAssistant:
         else:
             rows, cols = int(num_cards ** 0.5), int(num_cards ** 0.5)
 
-        # create buttons
         idx = 0
         for r in range(rows):
             for c in range(cols):
@@ -831,7 +761,6 @@ class WatchAssistant:
                 idx += 1
 
         ctk.CTkButton(self.root, text="Back", command=self.games_menu, width=200).grid(row=rows+3, column=0, columnspan=cols, pady=12)
-        # start timer updater
         self.update_card_matcher_timer()
 
     def update_card_matcher_timer(self):
@@ -841,12 +770,10 @@ class WatchAssistant:
             if self.card_matcher_matches < self.card_matcher_total:
                 self.root.after(100, self.update_card_matcher_timer)
             else:
-                # finished
                 elapsed = time.time() - self.card_matcher_start_time
                 self.finish_card_matcher(elapsed)
 
     def flip_card(self, idx):
-        # basic guards
         if len(self.card_matcher_flipped) >= 2:
             return
         if idx < 0 or idx >= len(self.card_matcher_buttons):
@@ -858,7 +785,6 @@ class WatchAssistant:
         btn.configure(text=str(self.card_matcher_board[idx]))
         self.card_matcher_flipped.append(idx)
         if len(self.card_matcher_flipped) == 2:
-            # give short delay then check
             self.root.after(700, self.check_card_match)
 
     def check_card_match(self):
