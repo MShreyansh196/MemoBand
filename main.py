@@ -223,102 +223,73 @@ class WatchAssistant:
             del self.reminders[key]
             self.save_reminders()
 
-    # ---------- Speech Keyword Helpers ----------
-    def homescreen_keywords(self):
-        recognizer = sr.Recognizer()
-        mic = sr.Microphone()
-        try:
-            with mic as source:
-                recognizer.adjust_for_ambient_noise(source)
-                audio = recognizer.listen(source, timeout=5)
-                text = recognizer.recognize_google(audio).lower()
-                if "reminder" in text:
-                    self.reminders_menu()
-                elif "games" in text:
-                    self.games_menu()
-                elif "location" in text:
-                    self.location_menu()
-                elif "stress" in text or "relief" in text:
-                    self.stress_relief_menu()
-                elif "logout" in text:
-                    self.logout()
-        except sr.UnknownValueError:
-            print("Could not understand audio")
-        except sr.RequestError:
-            print("API request failed")
-        except sr.WaitTimeoutError:
-            print("Listening timed out")
-        except Exception:
-            pass
-
-    def reminder_keywords(self):
-        recognizer = sr.Recognizer()
-        mic = sr.Microphone()
-        try:
-            with mic as source:
-                recognizer.adjust_for_ambient_noise(source)
-                audio = recognizer.listen(source, timeout=5)
-                text = recognizer.recognize_google(audio).lower()
-                if "review" in text:
-                    self.review_day()
-                elif "upcoming" in text:
-                    self.upcoming_reminders()
-                elif "create" in text:
-                    self.add_reminder()
-                else:
-                    print("No matching command found")
-        except sr.UnknownValueError:
-            print("Could not understand audio")
-        except sr.RequestError:
-            print("API request failed")
-        except sr.WaitTimeoutError:
-            print("Listening timed out")
-        except Exception:
-            pass
-
-    def games_keywords(self):
-        recognizer = sr.Recognizer()
-        mic = sr.Microphone()
-        try:
-            with mic as source:
-                recognizer.adjust_for_ambient_noise(source)
-                audio = recognizer.listen(source, timeout=5)
-                text = recognizer.recognize_google(audio).lower()
-                if "card" in text:
-                    self.card_matcher_game()
-                elif "hang" in text:
-                    self.hangman_game()
-                elif "object" in text:
-                    self.object_finder_game()
-                else:
-                    print("No matching command found")
-        except sr.UnknownValueError:
-            print("Could not understand audio")
-        except sr.RequestError:
-            print("API request failed")
-        except sr.WaitTimeoutError:
-            print("Listening timed out")
-        except Exception:
-            pass
     # ---------- Home Screen ----------
     def home_screen(self):
         self.clear_screen()
-        top_frame = ctk.CTkFrame(self.root)
-        top_frame.pack(pady=10, padx=10, fill="x")
-        ctk.CTkLabel(top_frame, text=f"Welcome, {self.current_user}!", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=5)
 
+        # --- Top time frame ---
+        time_frame = ctk.CTkFrame(self.root)
+        time_frame.pack(side="top", pady=10, padx=10, fill="x")
+        ctk.CTkButton(time_frame, text="Settings", command=self.settings_menu, width=10).pack(side="right", padx=10)
+        self.clock_label = ctk.CTkLabel(time_frame, text="", font=ctk.CTkFont(size=18, weight="bold"))
+        self.clock_label.pack(side="left")
+        self.date_label = ctk.CTkLabel(time_frame, text="", font=ctk.CTkFont(size=14))
+        self.date_label.pack(padx=30)
+
+        # --- Update time/date ---
+        def update_datetime():
+            now = datetime.datetime.now()
+            self.clock_label.configure(text=now.strftime("%I:%M:%S %p"))
+            self.date_label.configure(text=now.strftime("%B %d, %Y"))
+            self.root.after(1000, update_datetime)
+        update_datetime()
+
+        # --- Welcome label ---
+        welcome_frame = ctk.CTkFrame(self.root)
+        welcome_frame.pack(pady=10, padx=10, fill="x")
+        ctk.CTkLabel(welcome_frame, text=f"Welcome, {self.current_user}!", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=5)
+
+        # --- Buttons ---
         btn_frame = ctk.CTkFrame(self.root)
-        btn_frame.pack(pady=10, padx=10, fill="both", expand=False)
-
+        btn_frame.pack(pady=10, padx=10, fill="x")
         ctk.CTkButton(btn_frame, text="Reminders", command=self.reminders_menu, width=240).pack(pady=8)
         ctk.CTkButton(btn_frame, text="Games", command=self.games_menu, width=240).pack(pady=8)
         ctk.CTkButton(btn_frame, text="Location", command=self.location_menu, width=240).pack(pady=8)
         ctk.CTkButton(btn_frame, text="Stress Relief", command=self.stress_relief_menu, width=240).pack(pady=8)
 
-        footer = ctk.CTkFrame(self.root)
-        footer.pack(side="bottom", pady=10, padx=10, fill="x")
-        ctk.CTkButton(footer, text="Logout", command=self.logout, width=100).pack(side="left", padx=10)
-        ctk.CTkButton(footer, text= "\U0001f442 Speak It!", command=lambda: threading.Thread(target=self.homescreen_keywords).start(), width=150).pack(side="right", padx=10)
+    def settings_menu(self):
+        self.clear_screen()
+        
+        # Top frame with title
+        top_frame = ctk.CTkFrame(self.root)
+        top_frame.pack(pady=10, padx=10, fill="x")
+        ctk.CTkLabel(top_frame, text="Settings", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=5)
+        
+        # Initialize user_mode if it doesn't exist
+        if not hasattr(self, "user_mode"):
+            self.user_mode = "light"  # default mode
+
+        # Logout button
+        ctk.CTkButton(top_frame, text="Logout", command=self.logout).pack(pady=5)
+
+        # Delete account button with confirmation
+        def delete_account():
+            if messagebox.askyesno("Confirm Delete", "Are you sure you want to delete your account? This cannot be undone."):
+                messagebox.showinfo("Deleted", "Account deleted successfully.")
+                self.logout()
+        
+        ctk.CTkButton(top_frame, text="Delete Account", fg_color="darkred", hover_color="#a50000", command=delete_account).pack(pady=5)
+
+        # Toggle Dark/Light mode
+        def toggle_mode():
+            self.user_mode = "dark" if self.user_mode == "light" else "light"
+            ctk.set_appearance_mode(self.user_mode)
+
+        mode_switch = ctk.CTkSwitch(top_frame, text="Toggle Dark/Light Mode", command=toggle_mode)
+        mode_switch.pack(pady=20)
+        # Set switch initial state
+        mode_switch.select() if self.user_mode == "dark" else mode_switch.deselect()
+        ctk.CTkButton(top_frame, text="Back", command=self.home_screen).pack(pady=5)
 
     # ---------- Reminders Section ----------
     def reminders_menu(self):
@@ -330,7 +301,6 @@ class WatchAssistant:
         ctk.CTkButton(self.root, text="Upcoming Reminders", command=self.upcoming_reminders, width=200).pack(pady=6)
         ctk.CTkButton(self.root, text="Create Reminder", command=self.add_reminder, width=200).pack(pady=6)
         ctk.CTkButton(self.root, text="Back", command=self.home_screen, width=200, fg_color="gray").pack(pady=16)
-        ctk.CTkButton(self.root, text="\U0001f442 Speak It!", command=lambda: threading.Thread(target=self.reminder_keywords).start(), width=200).pack(pady=6)
 
     # ---------- Games Section ----------
     def games_menu(self): 
@@ -340,13 +310,8 @@ class WatchAssistant:
         ctk.CTkButton(self.root, text="Card Matcher", command=self.card_matcher_game, width=240).pack(pady=8)
         ctk.CTkButton(self.root, text="Object Finder", command=self.object_finder_game, width=240).pack(pady=8)
         ctk.CTkButton(self.root, text="Back", command=self.home_screen, width=200, fg_color="gray").pack(pady=16)
-        ctk.CTkButton(self.root, text="\U0001f442 Speak It!", command=lambda: threading.Thread(target=self.games_keywords).start(), width=200).pack(pady=6)
 
     # ---------- Location Section ----------
-   
-
-
-
     def location_menu(self):
         self.clear_screen()
         ctk.CTkLabel(self.root, text="Location", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=6)
@@ -454,6 +419,25 @@ class WatchAssistant:
 
     def object_finder_game(self):
        messagebox.showinfo("Object Finder", "Object Finder coming soon!")
+    def task_recognition(self, task_entry):
+        recognizer = sr.Recognizer()
+
+        try:
+            with sr.Microphone() as source:
+                messagebox.showinfo("Listening", "Please speak your task clearly...")
+                recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                audio = recognizer.listen(source, timeout=5)
+
+            text = recognizer.recognize_google(audio)
+            task_entry.delete(0, "end")
+            task_entry.insert(0, text)
+
+        except sr.UnknownValueError:
+            messagebox.showerror("Error", "Sorry, I couldn't understand what you said.")
+        except sr.RequestError:
+            messagebox.showerror("Error", "Speech recognition service is unavailable.")
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {e}")
 
     # ---------- Reminders Functionality ----------
     def add_reminder(self):
@@ -467,7 +451,7 @@ class WatchAssistant:
         ctk.CTkLabel(self.root, text="Make Reminder", font=ctk.CTkFont(size=18, weight="bold")).pack(pady=2)
 
         time_frame = ctk.CTkFrame(self.root)
-        time_frame.pack(pady=4, padx=10, fill="x")
+        time_frame.pack(pady=2, padx=10, fill="x")
 
         # Year selector
         ctk.CTkLabel(time_frame, text="Year:").grid(row=0, column=0, padx=5, pady=3, sticky="w")
@@ -519,9 +503,14 @@ class WatchAssistant:
         ampm_menu = ctk.CTkOptionMenu(time_frame, values=["AM", "PM"], variable=ampm_var, width=110)
         ampm_menu.grid(row=2, column=3, padx=5, pady=5)
 
-        ctk.CTkLabel(self.root, text="Task:", anchor="w").pack(pady=(2, 2), padx=10, fill="x")
-        task_entry = ctk.CTkEntry(self.root)
-        task_entry.pack(padx=10, fill="x")
+        ctk.CTkLabel(self.root, text="Task:", anchor="w").pack(pady=(1, 1), padx=10, fill="x")
+        task_frame = ctk.CTkFrame(self.root)
+        task_frame.pack(pady=(2,2), padx=10, fill="x")
+        task_entry = ctk.CTkEntry(task_frame, width=400)
+        task_entry.pack(side = "left",padx=5, pady=(1,1))
+        task_button = ctk.CTkButton(task_frame, text="\U0001f442", command=lambda: self.task_recognition(task_entry))
+        task_button.pack(side="right", padx=5)
+     
 
         # Save reminder function
         def save_reminders():
