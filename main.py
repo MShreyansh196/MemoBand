@@ -227,7 +227,6 @@ class WatchAssistant:
     def home_screen(self):
         self.clear_screen()
 
-        # --- Top time frame ---
         time_frame = ctk.CTkFrame(self.root)
         time_frame.pack(side="top", pady=10, padx=10, fill="x")
         ctk.CTkButton(time_frame, text="Settings", command=self.settings_menu, width=10).pack(side="right", padx=10)
@@ -236,7 +235,6 @@ class WatchAssistant:
         self.date_label = ctk.CTkLabel(time_frame, text="", font=ctk.CTkFont(size=14))
         self.date_label.pack(padx=30)
 
-        # --- Update time/date ---
         def update_datetime():
             now = datetime.datetime.now()
             self.clock_label.configure(text=now.strftime("%I:%M:%S %p"))
@@ -244,12 +242,10 @@ class WatchAssistant:
             self.root.after(1000, update_datetime)
         update_datetime()
 
-        # --- Welcome label ---
         welcome_frame = ctk.CTkFrame(self.root)
         welcome_frame.pack(pady=10, padx=10, fill="x")
         ctk.CTkLabel(welcome_frame, text=f"Welcome, {self.current_user}!", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=5)
 
-        # --- Buttons ---
         btn_frame = ctk.CTkFrame(self.root)
         btn_frame.pack(pady=10, padx=10, fill="x")
         ctk.CTkButton(btn_frame, text="Reminders", command=self.reminders_menu, width=240).pack(pady=8)
@@ -260,19 +256,15 @@ class WatchAssistant:
     def settings_menu(self):
         self.clear_screen()
         
-        # Top frame with title
         top_frame = ctk.CTkFrame(self.root)
         top_frame.pack(pady=10, padx=10, fill="x")
         ctk.CTkLabel(top_frame, text="Settings", font=ctk.CTkFont(size=20, weight="bold")).pack(pady=5)
         
-        # Initialize user_mode if it doesn't exist
         if not hasattr(self, "user_mode"):
-            self.user_mode = "light"  # default mode
+            self.user_mode = "light"  
 
-        # Logout button
         ctk.CTkButton(top_frame, text="Logout", command=self.logout).pack(pady=5)
 
-        # Delete account button with confirmation
         def delete_account():
             if messagebox.askyesno("Confirm Delete", "Are you sure you want to delete your account? This cannot be undone."):
                 messagebox.showinfo("Deleted", "Account deleted successfully.")
@@ -280,14 +272,12 @@ class WatchAssistant:
         
         ctk.CTkButton(top_frame, text="Delete Account", fg_color="darkred", hover_color="#a50000", command=delete_account).pack(pady=5)
 
-        # Toggle Dark/Light mode
         def toggle_mode():
             self.user_mode = "dark" if self.user_mode == "light" else "light"
             ctk.set_appearance_mode(self.user_mode)
 
         mode_switch = ctk.CTkSwitch(top_frame, text="Toggle Dark/Light Mode", command=toggle_mode)
         mode_switch.pack(pady=20)
-        # Set switch initial state
         mode_switch.select() if self.user_mode == "dark" else mode_switch.deselect()
         ctk.CTkButton(top_frame, text="Back", command=self.home_screen).pack(pady=5)
 

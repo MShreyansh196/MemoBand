@@ -1,13 +1,12 @@
 import gpsd
 import time
 
-# Connect to the local gpsd
 gpsd.connect()
 
 while True:
     packet = gpsd.get_current()
     
-    if packet.mode >= 2:  # 2D or 3D fix
+    if packet.mode >= 2: 
         latitude = packet.lat
         longitude = packet.lon
         altitude = packet.alt
