@@ -1,4 +1,4 @@
-# Alzheimers
-Alzheimers project
+# MemoBand
 
- /home/pi/Alzheimers_Project/venv/bin/python -m pip install customtkinter pillow pygame opencv-python tkcalendar tkmapview
+Install all dependencies as such:
+ /home/pi/Alzheimers_Project/venv/bin/python -m pip install [dependency]
